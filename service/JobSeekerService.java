@@ -26,13 +26,15 @@ public class JobSeekerService {
     }
 
     // Get all job seekers
+    @Transactional(readOnly = true) 
     public List<JobSeeker> getAllJobSeekers() {
-        return jobSeekerRepository.findAll();
+        return jobSeekerRepository.findAllWithExperiences();
     }
 
     // Get job seeker by ID
+    @Transactional(readOnly = true)
     public Optional<JobSeeker> getJobSeekerById(Long id) {
-        return jobSeekerRepository.findById(id);
+        return jobSeekerRepository.findByIdWithExperiences(id);
     }
 
     // Delete a job seeker
@@ -41,7 +43,8 @@ public class JobSeekerService {
     }
 
     // Find job seeker by email
+    @Transactional(readOnly = true)
     public Optional<JobSeeker> findByEmail(String email) {
-        return jobSeekerRepository.findByEmail(email);
+        return jobSeekerRepository.findByEmailWithAssociations(email);
     }
 }

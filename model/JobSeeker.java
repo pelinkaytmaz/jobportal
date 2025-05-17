@@ -26,7 +26,7 @@ public class JobSeeker {
     @OneToMany(mappedBy = "jobSeeker", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Experience> experiences = new HashSet<>();
 
-    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ManyToMany(cascade = {CascadeType.MERGE})
     @JoinTable(
             name = "job_seeker_skills",
             joinColumns = @JoinColumn(name = "job_seeker_id"),
