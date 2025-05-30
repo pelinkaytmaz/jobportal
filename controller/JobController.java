@@ -49,18 +49,18 @@ public class JobController {
     public ResponseEntity<JobDTO> createJob(@RequestBody JobCreateDTO jobCreateDTO) {
         // Get the company
         Company company = companyService.getCompanyById(jobCreateDTO.getCompanyId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                                    "Company not found with ID: " + jobCreateDTO.getCompanyId()));
-        
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Company not found with ID: " + jobCreateDTO.getCompanyId()));
+
         // Convert DTO to entity
         Job job = mapper.toJobEntity(jobCreateDTO, company);
-        
+
         // Save the job
         Job createdJob = jobService.saveJob(job);
-        
+
         // Convert entity to DTO
         JobDTO jobDTO = mapper.toJobDTO(createdJob);
-        
+
         return new ResponseEntity<>(jobDTO, HttpStatus.CREATED);
     }
 
@@ -68,12 +68,12 @@ public class JobController {
     @GetMapping
     public ResponseEntity<List<JobDTO>> getAllJobs() {
         List<Job> jobs = jobService.getAllJobs();
-        
+
         // Convert list of entities to list of DTOs
         List<JobDTO> jobDTOs = jobs.stream()
                 .map(mapper::toJobDTO)
                 .collect(Collectors.toList());
-        
+
         return new ResponseEntity<>(jobDTOs, HttpStatus.OK);
     }
 
@@ -95,9 +95,9 @@ public class JobController {
                 .map(existingJob -> {
                     // Get the company
                     Company company = companyService.getCompanyById(jobCreateDTO.getCompanyId())
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                                            "Company not found with ID: " + jobCreateDTO.getCompanyId()));
-                    
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                    "Company not found with ID: " + jobCreateDTO.getCompanyId()));
+
                     // Update existing job with DTO values
                     existingJob.setTitle(jobCreateDTO.getTitle());
                     existingJob.setDescription(jobCreateDTO.getDescription());
@@ -109,13 +109,13 @@ public class JobController {
                     existingJob.setType(jobCreateDTO.getType());
                     existingJob.setExperienceLevel(jobCreateDTO.getExperienceLevel());
                     existingJob.setCompany(company);
-                    
+
                     // Save updated job
                     Job updatedJob = jobService.saveJob(existingJob);
-                    
+
                     // Convert to DTO
                     JobDTO jobDTO = mapper.toJobDTO(updatedJob);
-                    
+
                     return new ResponseEntity<>(jobDTO, HttpStatus.OK);
                 })
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -141,15 +141,15 @@ public class JobController {
             @RequestParam(required = false) ExperienceLevel experienceLevel,
             @RequestParam(required = false) Double minSalary,
             @RequestParam(required = false) Double maxSalary) {
-        
+
         List<Job> filteredJobs = jobService.findJobsWithFilters(
                 keyword, location, type, experienceLevel, minSalary, maxSalary);
-        
+
         // Convert to DTOs
         List<JobDTO> jobDTOs = filteredJobs.stream()
                 .map(mapper::toJobDTO)
                 .collect(Collectors.toList());
-        
+
         return new ResponseEntity<>(jobDTOs, HttpStatus.OK);
     }
 }

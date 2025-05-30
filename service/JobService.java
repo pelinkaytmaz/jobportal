@@ -54,17 +54,17 @@ public class JobService {
     public List<Job> findJobsByLocation(String location) {
         return jobRepository.findByLocationContainingIgnoreCase(location);
     }
-    
+
     // Find jobs by type
     public List<Job> findJobsByType(JobType type) {
         return jobRepository.findByType(type);
     }
-    
+
     // Find jobs by experience level
     public List<Job> findJobsByExperienceLevel(ExperienceLevel experienceLevel) {
         return jobRepository.findByExperienceLevel(experienceLevel);
     }
-    
+
     // Find jobs by salary range
     public List<Job> findJobsBySalaryRange(Double minSalary, Double maxSalary) {
         return jobRepository.findBySalaryMinGreaterThanEqualAndSalaryMaxLessThanEqual(minSalary, maxSalary);
@@ -78,8 +78,14 @@ public class JobService {
             ExperienceLevel experienceLevel,
             Double minSalary,
             Double maxSalary) {
-        
+
         return jobRepository.findJobsWithFilters(
-                keyword, location, type, experienceLevel, minSalary, maxSalary);
+                keyword,
+                location,
+                type != null ? type.name() : null,
+                experienceLevel != null ? experienceLevel.name() : null,
+                minSalary,
+                maxSalary);
     }
+
 }
