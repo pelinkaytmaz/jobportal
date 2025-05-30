@@ -28,9 +28,21 @@ import com.dauphine.jobportal.service.CompanyService;
 import com.dauphine.jobportal.service.JobService;
 import com.dauphine.jobportal.util.EntityDTOMapper;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/api/jobs")
-@CrossOrigin(origins = "http://localhost:4200") // Angular runs on port 4200 by default
+@CrossOrigin(origins = "http://localhost:4200")
+@Tag(name = "Offres d'emploi", description = "API de gestion des offres d'emploi")
+@SecurityRequirement(name = "JWT")
 public class JobController {
 
     private final JobService jobService;
@@ -44,9 +56,75 @@ public class JobController {
         this.mapper = mapper;
     }
 
-    // Create a new job
     @PostMapping
-    public ResponseEntity<JobDTO> createJob(@RequestBody JobCreateDTO jobCreateDTO) {
+    @Operation(
+        summary = "Créer une nouvelle offre d'emploi",
+        description = "Permet à une entreprise de publier une nouvelle offre d'emploi avec tous les détails nécessaires " +
+                     "(titre, description, responsabilités, qualifications requises, localisation, salaire, type de contrat)"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "Offre d'emploi créée avec succès",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = JobDTO.class),
+                examples = @ExampleObject(
+                    value = """
+                    {
+                      "id": 1,
+                      "title": "Développeur Full Stack",
+                      "description": "Nous recherchons un développeur passionné...",
+                      "responsibilities": "Développement d'applications web, maintenance...",
+                      "qualifications": "Bac+5, 3 ans d'expérience en Java/Angular...",
+                      "location": "Paris, France",
+                      "salaryMin": 45000.0,
+                      "salaryMax": 60000.0,
+                      "type": "FULL_TIME",
+                      "experienceLevel": "MID_LEVEL",
+                      "company": {
+                        "id": 1,
+                        "name": "TechCorp"
+                      }
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Entreprise introuvable",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = """
+                    {
+                      "error": "Not Found",
+                      "message": "Company not found with ID: 999"
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Données d'offre invalides",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Non autorisé - Token JWT requis",
+            content = @Content
+        )
+    })
+    public ResponseEntity<JobDTO> createJob(
+        @Parameter(
+            description = "Informations de l'offre d'emploi à créer",
+            required = true,
+            schema = @Schema(implementation = JobCreateDTO.class)
+        )
+        @RequestBody JobCreateDTO jobCreateDTO) {
+        
         // Get the company
         Company company = companyService.getCompanyById(jobCreateDTO.getCompanyId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -64,8 +142,46 @@ public class JobController {
         return new ResponseEntity<>(jobDTO, HttpStatus.CREATED);
     }
 
-    // Get all jobs
     @GetMapping
+    @Operation(
+        summary = "Récupérer toutes les offres d'emploi",
+        description = "Retourne la liste complète de toutes les offres d'emploi disponibles sur la plateforme"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Liste des offres d'emploi récupérée avec succès",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = JobDTO.class),
+                examples = @ExampleObject(
+                    value = """
+                    [
+                      {
+                        "id": 1,
+                        "title": "Développeur Full Stack",
+                        "description": "Nous recherchons un développeur passionné...",
+                        "location": "Paris, France",
+                        "salaryMin": 45000.0,
+                        "salaryMax": 60000.0,
+                        "type": "FULL_TIME",
+                        "experienceLevel": "MID_LEVEL",
+                        "company": {
+                          "id": 1,
+                          "name": "TechCorp"
+                        }
+                      }
+                    ]
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Non autorisé - Token JWT requis",
+            content = @Content
+        )
+    })
     public ResponseEntity<List<JobDTO>> getAllJobs() {
         List<Job> jobs = jobService.getAllJobs();
 
@@ -77,9 +193,39 @@ public class JobController {
         return new ResponseEntity<>(jobDTOs, HttpStatus.OK);
     }
 
-    // Get job by ID
     @GetMapping("/{id}")
-    public ResponseEntity<JobDTO> getJobById(@PathVariable Long id) {
+    @Operation(
+        summary = "Récupérer une offre d'emploi par son ID",
+        description = "Retourne les détails complets d'une offre d'emploi spécifique"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Offre d'emploi trouvée",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = JobDTO.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Offre d'emploi introuvable",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Non autorisé - Token JWT requis",
+            content = @Content
+        )
+    })
+    public ResponseEntity<JobDTO> getJobById(
+        @Parameter(
+            description = "ID unique de l'offre d'emploi",
+            required = true,
+            example = "1"
+        )
+        @PathVariable Long id) {
+        
         return jobService.getJobById(id)
                 .map(job -> {
                     JobDTO jobDTO = mapper.toJobDTO(job);
@@ -88,9 +234,51 @@ public class JobController {
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    // Update a job
     @PutMapping("/{id}")
-    public ResponseEntity<JobDTO> updateJob(@PathVariable Long id, @RequestBody JobCreateDTO jobCreateDTO) {
+    @Operation(
+        summary = "Mettre à jour une offre d'emploi",
+        description = "Met à jour toutes les informations d'une offre d'emploi existante. " +
+                     "L'entreprise associée peut également être modifiée."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Offre d'emploi mise à jour avec succès",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = JobDTO.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Offre d'emploi ou entreprise introuvable",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Données invalides",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Non autorisé - Token JWT requis",
+            content = @Content
+        )
+    })
+    public ResponseEntity<JobDTO> updateJob(
+        @Parameter(
+            description = "ID de l'offre d'emploi à mettre à jour",
+            required = true,
+            example = "1"
+        )
+        @PathVariable Long id,
+        @Parameter(
+            description = "Nouvelles informations de l'offre d'emploi",
+            required = true,
+            schema = @Schema(implementation = JobCreateDTO.class)
+        )
+        @RequestBody JobCreateDTO jobCreateDTO) {
+        
         return jobService.getJobById(id)
                 .map(existingJob -> {
                     // Get the company
@@ -121,9 +309,41 @@ public class JobController {
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    // Delete a job
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteJob(@PathVariable Long id) {
+    @Operation(
+        summary = "Supprimer une offre d'emploi",
+        description = "Supprime définitivement une offre d'emploi du système. " +
+                     "Toutes les candidatures associées seront également supprimées."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "204",
+            description = "Offre d'emploi supprimée avec succès"
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Offre d'emploi introuvable",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Non autorisé - Token JWT requis",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Conflit - Impossible de supprimer (candidatures en cours)",
+            content = @Content
+        )
+    })
+    public ResponseEntity<Void> deleteJob(
+        @Parameter(
+            description = "ID de l'offre d'emploi à supprimer",
+            required = true,
+            example = "1"
+        )
+        @PathVariable Long id) {
+        
         return jobService.getJobById(id)
                 .map(job -> {
                     jobService.deleteJob(id);
@@ -132,15 +352,90 @@ public class JobController {
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    // Search jobs with filters
     @GetMapping("/search")
+    @Operation(
+        summary = "Rechercher des offres d'emploi avec filtres",
+        description = "Effectue une recherche avancée d'offres d'emploi avec de multiples critères de filtrage. " +
+                     "Tous les paramètres sont optionnels et peuvent être combinés pour affiner les résultats."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Résultats de recherche récupérés avec succès",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = JobDTO.class),
+                examples = @ExampleObject(
+                    value = """
+                    [
+                      {
+                        "id": 1,
+                        "title": "Développeur Java",
+                        "description": "Poste de développeur Java...",
+                        "location": "Paris, France",
+                        "salaryMin": 45000.0,
+                        "salaryMax": 60000.0,
+                        "type": "FULL_TIME",
+                        "experienceLevel": "MID_LEVEL",
+                        "company": {
+                          "id": 1,
+                          "name": "TechCorp"
+                        }
+                      }
+                    ]
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Paramètres de recherche invalides",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Non autorisé - Token JWT requis",
+            content = @Content
+        )
+    })
     public ResponseEntity<List<JobDTO>> searchJobs(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String location,
-            @RequestParam(required = false) JobType type,
-            @RequestParam(required = false) ExperienceLevel experienceLevel,
-            @RequestParam(required = false) Double minSalary,
-            @RequestParam(required = false) Double maxSalary) {
+        @Parameter(
+            description = "Mot-clé pour rechercher dans le titre et la description",
+            example = "Java"
+        )
+        @RequestParam(required = false) String keyword,
+        
+        @Parameter(
+            description = "Localisation géographique du poste",
+            example = "Paris"
+        )
+        @RequestParam(required = false) String location,
+        
+        @Parameter(
+            description = "Type de contrat",
+            schema = @Schema(implementation = JobType.class),
+            example = "FULL_TIME"
+        )
+        @RequestParam(required = false) JobType type,
+        
+        @Parameter(
+            description = "Niveau d'expérience requis",
+            schema = @Schema(implementation = ExperienceLevel.class),
+            example = "MID_LEVEL"
+        )
+        @RequestParam(required = false) ExperienceLevel experienceLevel,
+        
+        @Parameter(
+            description = "Salaire minimum souhaité (en euros)",
+            example = "40000"
+        )
+        @RequestParam(required = false) Double minSalary,
+        
+        @Parameter(
+            description = "Salaire maximum souhaité (en euros)",
+            example = "70000"
+        )
+        @RequestParam(required = false) Double maxSalary) {
 
         List<Job> filteredJobs = jobService.findJobsWithFilters(
                 keyword, location, type, experienceLevel, minSalary, maxSalary);

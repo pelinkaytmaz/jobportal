@@ -32,9 +32,18 @@ import com.dauphine.jobportal.service.JobService;
 import com.dauphine.jobportal.service.SkillService;
 import com.dauphine.jobportal.util.EntityDTOMapper;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/api/applications")
 @CrossOrigin(origins = "http://localhost:4200")
+@Tag(name = "Applications", description = "API de gestion des candidatures")
 public class ApplicationController {
 
     private final ApplicationService applicationService;
@@ -56,9 +65,35 @@ public class ApplicationController {
         this.mapper = mapper;
     }
 
-    // Submit a new application
     @PostMapping
-    public ResponseEntity<ApplicationDTO> submitApplication(@RequestBody ApplicationCreateDTO applicationCreateDTO) {
+    @Operation(
+        summary = "Soumettre une nouvelle candidature",
+        description = "Permet à un candidat de postuler à une offre d'emploi. Si le candidat existe déjà (basé sur l'email), ses informations sont mises à jour."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "Candidature créée avec succès",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApplicationDTO.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Offre d'emploi introuvable",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Données de candidature invalides",
+            content = @Content
+        )
+    })
+    public ResponseEntity<ApplicationDTO> submitApplication(
+        @Parameter(description = "Données de la candidature à créer", required = true)
+        @RequestBody ApplicationCreateDTO applicationCreateDTO) {
+        
         // Get the job
         Job job = jobService.getJobById(applicationCreateDTO.getJobId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -109,8 +144,21 @@ public class ApplicationController {
         return new ResponseEntity<>(applicationDTO, HttpStatus.CREATED);
     }
 
-    // Get all applications
     @GetMapping
+    @Operation(
+        summary = "Récupérer toutes les candidatures",
+        description = "Retourne la liste complète de toutes les candidatures enregistrées dans le système"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Liste des candidatures récupérée avec succès",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApplicationDTO.class)
+            )
+        )
+    })
     public ResponseEntity<List<ApplicationDTO>> getAllApplications() {
         List<Application> applications = applicationService.getAllApplications();
         
@@ -121,9 +169,30 @@ public class ApplicationController {
         return new ResponseEntity<>(applicationDTOs, HttpStatus.OK);
     }
 
-    // Get application by ID
     @GetMapping("/{id}")
-    public ResponseEntity<ApplicationDTO> getApplicationById(@PathVariable Long id) {
+    @Operation(
+        summary = "Récupérer une candidature par son ID",
+        description = "Retourne les détails d'une candidature spécifique basée sur son identifiant unique"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Candidature trouvée",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApplicationDTO.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Candidature introuvable",
+            content = @Content
+        )
+    })
+    public ResponseEntity<ApplicationDTO> getApplicationById(
+        @Parameter(description = "ID de la candidature", required = true)
+        @PathVariable Long id) {
+        
         return applicationService.getApplicationById(id)
                 .map(application -> {
                     ApplicationDTO applicationDTO = mapper.toApplicationDTO(application);
@@ -132,9 +201,30 @@ public class ApplicationController {
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    // Get applications by job seeker ID
     @GetMapping("/jobseeker/{jobSeekerId}")
-    public ResponseEntity<List<ApplicationDTO>> getApplicationsByJobSeekerId(@PathVariable Long jobSeekerId) {
+    @Operation(
+        summary = "Récupérer les candidatures d'un candidat",
+        description = "Retourne toutes les candidatures soumises par un candidat spécifique"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Candidatures du candidat récupérées avec succès",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApplicationDTO.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Candidat introuvable",
+            content = @Content
+        )
+    })
+    public ResponseEntity<List<ApplicationDTO>> getApplicationsByJobSeekerId(
+        @Parameter(description = "ID du candidat", required = true)
+        @PathVariable Long jobSeekerId) {
+        
         List<Application> applications = applicationService.getApplicationsByJobSeekerId(jobSeekerId);
         
         List<ApplicationDTO> applicationDTOs = applications.stream()
@@ -144,9 +234,30 @@ public class ApplicationController {
         return new ResponseEntity<>(applicationDTOs, HttpStatus.OK);
     }
 
-    // Get applications by job ID
     @GetMapping("/job/{jobId}")
-    public ResponseEntity<List<ApplicationDTO>> getApplicationsByJobId(@PathVariable Long jobId) {
+    @Operation(
+        summary = "Récupérer les candidatures pour une offre d'emploi",
+        description = "Retourne toutes les candidatures reçues pour une offre d'emploi spécifique"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Candidatures pour l'offre récupérées avec succès",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApplicationDTO.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Offre d'emploi introuvable",
+            content = @Content
+        )
+    })
+    public ResponseEntity<List<ApplicationDTO>> getApplicationsByJobId(
+        @Parameter(description = "ID de l'offre d'emploi", required = true)
+        @PathVariable Long jobId) {
+        
         List<Application> applications = applicationService.getApplicationsByJobId(jobId);
         
         List<ApplicationDTO> applicationDTOs = applications.stream()
@@ -156,11 +267,36 @@ public class ApplicationController {
         return new ResponseEntity<>(applicationDTOs, HttpStatus.OK);
     }
 
-    // Update application status
     @PatchMapping("/{id}/status")
+    @Operation(
+        summary = "Mettre à jour le statut d'une candidature",
+        description = "Permet de modifier le statut d'une candidature (ex: EN_ATTENTE, ACCEPTEE, REJETEE)"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Statut de la candidature mis à jour avec succès",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApplicationDTO.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Candidature introuvable",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Statut invalide",
+            content = @Content
+        )
+    })
     public ResponseEntity<ApplicationDTO> updateApplicationStatus(
-            @PathVariable Long id,
-            @RequestBody ApplicationStatusUpdateDTO statusUpdate) {
+        @Parameter(description = "ID de la candidature", required = true)
+        @PathVariable Long id,
+        @Parameter(description = "Nouveau statut de la candidature", required = true)
+        @RequestBody ApplicationStatusUpdateDTO statusUpdate) {
         
         return applicationService.getApplicationById(id)
                 .map(application -> {
@@ -173,9 +309,26 @@ public class ApplicationController {
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    // Delete an application
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteApplication(@PathVariable Long id) {
+    @Operation(
+        summary = "Supprimer une candidature",
+        description = "Supprime définitivement une candidature du système"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "204",
+            description = "Candidature supprimée avec succès"
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Candidature introuvable",
+            content = @Content
+        )
+    })
+    public ResponseEntity<Void> deleteApplication(
+        @Parameter(description = "ID de la candidature à supprimer", required = true)
+        @PathVariable Long id) {
+        
         return applicationService.getApplicationById(id)
                 .map(application -> {
                     applicationService.deleteApplication(id);
