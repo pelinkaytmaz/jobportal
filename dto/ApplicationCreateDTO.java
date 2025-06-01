@@ -5,13 +5,13 @@ import com.dauphine.jobportal.model.enums.ApplicationStatus;
 // DTO for creating a new application
 public class ApplicationCreateDTO {
     private Long jobId;
-    private JobSeekerCreateDTO jobSeeker;
+    private JobSeekerDTO jobSeeker;
     private ApplicationStatus status;
-    
+
     // Constructors
     public ApplicationCreateDTO() {
     }
-    
+
     // Getters and Setters
     public Long getJobId() {
         return jobId;
@@ -21,11 +21,11 @@ public class ApplicationCreateDTO {
         this.jobId = jobId;
     }
 
-    public JobSeekerCreateDTO getJobSeeker() {
+    public JobSeekerDTO getJobSeeker() {
         return jobSeeker;
     }
 
-    public void setJobSeeker(JobSeekerCreateDTO jobSeeker) {
+    public void setJobSeeker(JobSeekerDTO jobSeeker) {
         this.jobSeeker = jobSeeker;
     }
 

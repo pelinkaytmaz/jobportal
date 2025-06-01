@@ -23,6 +23,7 @@ import com.dauphine.jobportal.model.Experience;
 import com.dauphine.jobportal.model.Job;
 import com.dauphine.jobportal.model.JobSeeker;
 import com.dauphine.jobportal.model.Skill;
+import com.dauphine.jobportal.model.User;
 
 @Component
 public class EntityDTOMapper {
@@ -45,11 +46,11 @@ public class EntityDTOMapper {
         dto.setType(job.getType());
         dto.setExperienceLevel(job.getExperienceLevel());
         dto.setPostingDate(job.getPostingDate());
-        
+
         if (job.getCompany() != null) {
             dto.setCompany(toCompanyDTO(job.getCompany()));
         }
-        
+
         return dto;
     }
 
@@ -69,7 +70,7 @@ public class EntityDTOMapper {
         job.setType(dto.getType());
         job.setExperienceLevel(dto.getExperienceLevel());
         job.setCompany(company);
-        
+
         return job;
     }
 
@@ -85,7 +86,7 @@ public class EntityDTOMapper {
         dto.setDescription(company.getDescription());
         dto.setLocation(company.getLocation());
         dto.setWebsite(company.getWebsite());
-        
+
         return dto;
     }
 
@@ -99,7 +100,7 @@ public class EntityDTOMapper {
         company.setDescription(dto.getDescription());
         company.setLocation(dto.getLocation());
         company.setWebsite(dto.getWebsite());
-        
+
         return company;
     }
 
@@ -113,27 +114,26 @@ public class EntityDTOMapper {
         dto.setId(jobSeeker.getId());
         dto.setFirstName(jobSeeker.getFirstName());
         dto.setLastName(jobSeeker.getLastName());
-        dto.setEmail(jobSeeker.getEmail());
         dto.setPhoneNumber(jobSeeker.getPhoneNumber());
-        
+
         if (jobSeeker.getExperiences() != null) {
             Set<ExperienceDTO> experienceDTOs = jobSeeker.getExperiences().stream()
                     .map(this::toExperienceDTO)
                     .collect(Collectors.toSet());
             dto.setExperiences(experienceDTOs);
         }
-        
+
         if (jobSeeker.getSkills() != null) {
             Set<SkillDTO> skillDTOs = jobSeeker.getSkills().stream()
                     .map(this::toSkillDTO)
                     .collect(Collectors.toSet());
             dto.setSkills(skillDTOs);
         }
-        
+
         return dto;
     }
 
-    public JobSeeker toJobSeekerEntity(JobSeekerCreateDTO dto) {
+    public JobSeeker toJobSeekerEntity(JobSeekerCreateDTO dto, User user) {
         if (dto == null) {
             return null;
         }
@@ -141,9 +141,9 @@ public class EntityDTOMapper {
         JobSeeker jobSeeker = new JobSeeker();
         jobSeeker.setFirstName(dto.getFirstName());
         jobSeeker.setLastName(dto.getLastName());
-        jobSeeker.setEmail(dto.getEmail());
         jobSeeker.setPhoneNumber(dto.getPhoneNumber());
-        
+        jobSeeker.setUser(user);
+
         if (dto.getExperiences() != null) {
             Set<Experience> experiences = dto.getExperiences().stream()
                     .map(expDto -> {
@@ -154,7 +154,7 @@ public class EntityDTOMapper {
                     .collect(Collectors.toSet());
             jobSeeker.setExperiences(experiences);
         }
-        
+
         return jobSeeker;
     }
 
@@ -170,7 +170,7 @@ public class EntityDTOMapper {
         dto.setDescription(experience.getDescription());
         dto.setStartDate(experience.getStartDate());
         dto.setEndDate(experience.getEndDate());
-        
+
         return dto;
     }
 
@@ -184,7 +184,7 @@ public class EntityDTOMapper {
         experience.setDescription(dto.getDescription());
         experience.setStartDate(dto.getStartDate());
         experience.setEndDate(dto.getEndDate());
-        
+
         return experience;
     }
 
@@ -197,7 +197,7 @@ public class EntityDTOMapper {
         SkillDTO dto = new SkillDTO();
         dto.setId(skill.getId());
         dto.setName(skill.getName());
-        
+
         return dto;
     }
 
@@ -225,15 +225,15 @@ public class EntityDTOMapper {
         dto.setId(application.getId());
         dto.setApplicationDate(application.getApplicationDate());
         dto.setStatus(application.getStatus());
-        
+
         if (application.getJob() != null) {
             dto.setJob(toJobDTO(application.getJob()));
         }
-        
+
         if (application.getJobSeeker() != null) {
             dto.setJobSeeker(toJobSeekerDTO(application.getJobSeeker()));
         }
-        
+
         return dto;
     }
 
@@ -246,7 +246,7 @@ public class EntityDTOMapper {
         application.setJob(job);
         application.setJobSeeker(jobSeeker);
         application.setStatus(dto.getStatus());
-        
+
         return application;
     }
 }

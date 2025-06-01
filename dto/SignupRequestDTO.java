@@ -8,6 +8,7 @@ public class SignupRequestDTO {
     private String email;
     private String password;
     private Set<RoleRequest> roles;
+    private JobSeekerCreateDTO jobSeeker;
 
     public static class RoleRequest {
         private String name;
@@ -53,5 +54,13 @@ public class SignupRequestDTO {
 
     public void setRoles(Set<RoleRequest> roles) {
         this.roles = roles;
+    }
+
+    public JobSeekerCreateDTO getJobSeeker() {
+        return jobSeeker;
+    }
+
+    public void setJobSeeker(JobSeekerCreateDTO jobSeeker) {
+        this.jobSeeker = jobSeeker;
     }
 }

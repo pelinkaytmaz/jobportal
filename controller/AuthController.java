@@ -17,15 +17,21 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.dauphine.jobportal.dto.JobSeekerCreateDTO;
 import com.dauphine.jobportal.dto.JwtResponseDTO;
 import com.dauphine.jobportal.dto.LoginRequestDTO;
 import com.dauphine.jobportal.dto.SignupRequestDTO;
+import com.dauphine.jobportal.model.JobSeeker;
 import com.dauphine.jobportal.model.Role;
+import com.dauphine.jobportal.model.Skill;
 import com.dauphine.jobportal.model.User;
 import com.dauphine.jobportal.model.enums.ERole;
+import com.dauphine.jobportal.repository.JobSeekerRepository;
 import com.dauphine.jobportal.repository.RoleRepository;
 import com.dauphine.jobportal.repository.UserRepository;
 import com.dauphine.jobportal.security.JwtUtils;
+import com.dauphine.jobportal.service.SkillService;
+import com.dauphine.jobportal.util.EntityDTOMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -35,6 +41,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 
 @RestController
@@ -52,60 +59,35 @@ public class AuthController {
         RoleRepository roleRepository;
 
         @Autowired
+        JobSeekerRepository jobSeekerRepository;
+
+        @Autowired
+        SkillService skillService;
+
+        @Autowired
         PasswordEncoder encoder;
 
         @Autowired
         JwtUtils jwtUtils;
 
+        @Autowired
+        EntityDTOMapper entityMapper;
+
         @PostMapping("/signup")
-        @Operation(
-                summary = "Inscription d'un nouvel utilisateur",
-                description = "Permet de créer un nouveau compte utilisateur avec un nom d'utilisateur, email et mot de passe uniques. " +
-                            "Si aucun rôle n'est spécifié, l'utilisateur recevra le rôle ROLE_USER par défaut."
-        )
+        @Transactional
+        @Operation(summary = "Inscription d'un nouvel utilisateur", description = "Permet de créer un nouveau compte utilisateur avec un nom d'utilisateur, email et mot de passe uniques. "
+                        + "Si aucun rôle n'est spécifié, l'utilisateur recevra le rôle ROLE_USER par défaut.")
         @ApiResponses(value = {
-                @ApiResponse(
-                        responseCode = "200",
-                        description = "Utilisateur créé avec succès",
-                        content = @Content(
-                                mediaType = "text/plain",
-                                examples = @ExampleObject(value = "User registered successfully!")
-                        )
-                ),
-                @ApiResponse(
-                        responseCode = "400",
-                        description = "Erreur lors de la création - nom d'utilisateur ou email déjà utilisé",
-                        content = @Content(
-                                mediaType = "text/plain",
-                                examples = {
-                                        @ExampleObject(
-                                                name = "Username taken",
-                                                value = "Error: Username is already taken!"
-                                        ),
-                                        @ExampleObject(
-                                                name = "Email in use",
-                                                value = "Error: Email is already in use!"
-                                        )
-                                }
-                        )
-                ),
-                @ApiResponse(
-                        responseCode = "500",
-                        description = "Erreur interne - rôle non trouvé",
-                        content = @Content(
-                                mediaType = "text/plain",
-                                examples = @ExampleObject(value = "Error: Role ROLE_USER is not found.")
-                        )
-                )
+                        @ApiResponse(responseCode = "200", description = "Utilisateur créé avec succès", content = @Content(mediaType = "text/plain", examples = @ExampleObject(value = "User registered successfully!"))),
+                        @ApiResponse(responseCode = "400", description = "Erreur lors de la création - nom d'utilisateur ou email déjà utilisé", content = @Content(mediaType = "text/plain", examples = {
+                                        @ExampleObject(name = "Username taken", value = "Error: Username is already taken!"),
+                                        @ExampleObject(name = "Email in use", value = "Error: Email is already in use!")
+                        })),
+                        @ApiResponse(responseCode = "500", description = "Erreur interne - rôle non trouvé", content = @Content(mediaType = "text/plain", examples = @ExampleObject(value = "Error: Role ROLE_USER is not found.")))
         })
         public String registerUser(
-                @Parameter(
-                        description = "Informations d'inscription de l'utilisateur",
-                        required = true,
-                        schema = @Schema(implementation = SignupRequestDTO.class)
-                )
-                @Valid @RequestBody SignupRequestDTO signUpRequest) {
-                
+                        @Parameter(description = "Informations d'inscription de l'utilisateur", required = true, schema = @Schema(implementation = SignupRequestDTO.class)) @Valid @RequestBody SignupRequestDTO signUpRequest) {
+
                 if (userRepository.existsByUsername(signUpRequest.getUsername())) {
                         return "Error: Username is already taken!";
                 }
@@ -122,8 +104,8 @@ public class AuthController {
                 Set<Role> roles = new HashSet<>();
 
                 if (signUpRequest.getRoles() == null || signUpRequest.getRoles().isEmpty()) {
-                        Role userRole = roleRepository.findByName(ERole.ROLE_USER)
-                                        .orElseThrow(() -> new RuntimeException("Error: Role ROLE_USER is not found."));
+                        Role userRole = roleRepository.findByName(ERole.ROLE_CANDIDAT)
+                                        .orElseThrow(() -> new RuntimeException("Error: Role ROLE_CANDIDAT is not found."));
                         roles.add(userRole);
                 } else {
                         signUpRequest.getRoles().forEach(roleReq -> {
@@ -136,89 +118,66 @@ public class AuthController {
                 }
 
                 user.setRoles(roles);
-                userRepository.save(user);
+                User userSaved = userRepository.save(user);
+
+                if (roles.stream().anyMatch(r -> r.getName() == ERole.ROLE_CANDIDAT)) {
+                        JobSeekerCreateDTO js = signUpRequest.getJobSeeker();
+
+                        if (js == null) {
+                                throw new IllegalArgumentException(
+                                                "Error: Missing jobSeeker data with role jobseeker selected!");
+                        }
+
+                        JobSeeker jobSeeker = entityMapper.toJobSeekerEntity(js, userSaved);
+
+                        // Process skills from DTO and add to JobSeeker entity
+                        if (js.getSkills() != null && !js.getSkills().isEmpty()) {
+                                Set<Skill> skills = js.getSkills().stream()
+                                                .map(skillDTO -> skillService.findByNameOrCreate(skillDTO))
+                                                .collect(Collectors.toSet());
+                                jobSeeker.setSkills(skills);
+                        }
+
+                        jobSeekerRepository.save(jobSeeker);
+                }
 
                 return "User registered successfully!";
         }
 
         @PostMapping("/login")
-        @Operation(
-                summary = "Connexion utilisateur",
-                description = "Authentifie un utilisateur avec ses identifiants et retourne un token JWT pour les requêtes ultérieures. " +
-                            "Le token doit être inclus dans l'en-tête Authorization des requêtes suivantes."
-        )
+        @Operation(summary = "Connexion utilisateur", description = "Authentifie un utilisateur avec ses identifiants et retourne un token JWT pour les requêtes ultérieures. "
+                        +
+                        "Le token doit être inclus dans l'en-tête Authorization des requêtes suivantes.")
         @ApiResponses(value = {
-                @ApiResponse(
-                        responseCode = "200",
-                        description = "Authentification réussie",
-                        content = @Content(
-                                mediaType = "application/json",
-                                schema = @Schema(implementation = JwtResponseDTO.class),
-                                examples = @ExampleObject(
-                                        value = """
+                        @ApiResponse(responseCode = "200", description = "Authentification réussie", content = @Content(mediaType = "application/json", schema = @Schema(implementation = JwtResponseDTO.class), examples = @ExampleObject(value = """
                                         {
                                           "token": "eyJhbGciOiJIUzUxMiJ9...",
                                           "username": "john_doe",
                                           "roles": ["ROLE_USER"]
                                         }
-                                        """
-                                )
-                        )
-                ),
-                @ApiResponse(
-                        responseCode = "401",
-                        description = "Identifiants invalides",
-                        content = @Content(
-                                mediaType = "application/json",
-                                examples = @ExampleObject(
-                                        value = """
+                                        """))),
+                        @ApiResponse(responseCode = "401", description = "Identifiants invalides", content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
                                         {
                                           "error": "Unauthorized",
                                           "message": "Invalid credentials"
                                         }
-                                        """
-                                )
-                        )
-                ),
-                @ApiResponse(
-                        responseCode = "404",
-                        description = "Utilisateur non trouvé",
-                        content = @Content(
-                                mediaType = "application/json",
-                                examples = @ExampleObject(
-                                        value = """
+                                        """))),
+                        @ApiResponse(responseCode = "404", description = "Utilisateur non trouvé", content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
                                         {
                                           "error": "User not found",
                                           "message": "Username not found"
                                         }
-                                        """
-                                )
-                        )
-                ),
-                @ApiResponse(
-                        responseCode = "500",
-                        description = "Erreur interne du serveur",
-                        content = @Content(
-                                mediaType = "application/json",
-                                examples = @ExampleObject(
-                                        value = """
+                                        """))),
+                        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur", content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
                                         {
                                           "error": "Internal Server Error",
                                           "message": "Authentication service unavailable"
                                         }
-                                        """
-                                )
-                        )
-                )
+                                        """)))
         })
         public JwtResponseDTO authenticateUser(
-                @Parameter(
-                        description = "Identifiants de connexion (nom d'utilisateur et mot de passe)",
-                        required = true,
-                        schema = @Schema(implementation = LoginRequestDTO.class)
-                )
-                @Valid @RequestBody LoginRequestDTO loginRequest) {
-                
+                        @Parameter(description = "Identifiants de connexion (nom d'utilisateur et mot de passe)", required = true, schema = @Schema(implementation = LoginRequestDTO.class)) @Valid @RequestBody LoginRequestDTO loginRequest) {
+
                 try {
                         Authentication authentication = authenticationManager.authenticate(
                                         new UsernamePasswordAuthenticationToken(loginRequest.getUsername(),

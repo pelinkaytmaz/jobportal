@@ -12,26 +12,23 @@ public class JobSeeker {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @OneToOne
+    @JoinColumn(name = "id", nullable = false, unique = true)
+    private User user;
+
     @Column(nullable = false)
     private String firstName;
 
     @Column(nullable = false)
     private String lastName;
 
-    @Column(nullable = false, unique = true)
-    private String email;
-
     private String phoneNumber;
 
     @OneToMany(mappedBy = "jobSeeker", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Experience> experiences = new HashSet<>();
 
-    @ManyToMany(cascade = {CascadeType.MERGE})
-    @JoinTable(
-            name = "job_seeker_skills",
-            joinColumns = @JoinColumn(name = "job_seeker_id"),
-            inverseJoinColumns = @JoinColumn(name = "skill_id")
-    )
+    @ManyToMany(cascade = { CascadeType.MERGE })
+    @JoinTable(name = "job_seeker_skills", joinColumns = @JoinColumn(name = "job_seeker_id"), inverseJoinColumns = @JoinColumn(name = "skill_id"))
     private Set<Skill> skills = new HashSet<>();
 
     @OneToMany(mappedBy = "jobSeeker", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -64,14 +61,6 @@ public class JobSeeker {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
     }
 
     public String getPhoneNumber() {
@@ -135,5 +124,13 @@ public class JobSeeker {
     public void removeApplication(Application application) {
         applications.remove(application);
         application.setJobSeeker(null);
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

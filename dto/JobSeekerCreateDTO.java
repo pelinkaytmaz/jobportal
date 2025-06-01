@@ -7,15 +7,14 @@ import java.util.Set;
 public class JobSeekerCreateDTO {
     private String firstName;
     private String lastName;
-    private String email;
     private String phoneNumber;
     private Set<ExperienceCreateDTO> experiences = new HashSet<>();
     private Set<String> skills = new HashSet<>();
-    
+
     // Constructors
     public JobSeekerCreateDTO() {
     }
-    
+
     // Getters and Setters
     public String getFirstName() {
         return firstName;
@@ -31,14 +30,6 @@ public class JobSeekerCreateDTO {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
     }
 
     public String getPhoneNumber() {

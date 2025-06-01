@@ -8,15 +8,14 @@ public class JobSeekerDTO {
     private Long id;
     private String firstName;
     private String lastName;
-    private String email;
     private String phoneNumber;
     private Set<ExperienceDTO> experiences = new HashSet<>();
     private Set<SkillDTO> skills = new HashSet<>();
-    
+
     // Constructors
     public JobSeekerDTO() {
     }
-    
+
     // Getters and Setters
     public Long getId() {
         return id;
@@ -40,14 +39,6 @@ public class JobSeekerDTO {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
     }
 
     public String getPhoneNumber() {
@@ -74,9 +65,3 @@ public class JobSeekerDTO {
         this.skills = skills;
     }
 }
-
-
-
-
-
-
